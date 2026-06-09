@@ -22,7 +22,7 @@ function render() {
       0
     );
 
-    // ⭐ IMPORTANTE: viewport para el framebuffer
+    // ⭐ VIEWPORT CORRECTO (framebuffer)
     gl.viewport(0, 0, canvas.width, canvas.height);
 
     gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
@@ -45,7 +45,7 @@ function render() {
     // ⭐ Render al canvas
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-    // ⭐ ESTA LÍNEA ES LA QUE TE FALTABA
+    // ⭐ VIEWPORT CORRECTO (canvas)
     gl.viewport(0, 0, canvas.width, canvas.height);
 
     gl.activeTexture(gl.TEXTURE1);
