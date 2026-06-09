@@ -16,14 +16,15 @@ void main() {
     // Cámara base
     vec4 cam = texture2D(u_texture, uv);
 
-    // ⭐ Glitch suave por línea
-    float glitch = step(0.995, fract(sin(uv.y * 900.0) * 99999.0));
-    float glitchShift = glitch * 0.01;
+    // ⭐ Glitch más fuerte pero no destructivo
+    float glitchH = step(0.985, fract(sin(uv.y * 1200.0) * 99999.0));
+    float glitchV = step(0.985, fract(sin(uv.x * 800.0) * 99999.0));
+    float glitchShift = (glitchH + glitchV) * 0.015;
 
-    // ⭐ Arcoíris suave (RGB split pequeño)
-    vec2 rUV = uv + vec2(0.001 + glitchShift, -0.0005);
+    // ⭐ Arcoíris más marcado (RGB split mayor)
+    vec2 rUV = uv + vec2(0.0025 + glitchShift, -0.0015);
     vec2 gUV = uv;
-    vec2 bUV = uv + vec2(-0.001 - glitchShift, 0.0005);
+    vec2 bUV = uv + vec2(-0.0025 - glitchShift, 0.0015);
 
     vec3 rainbowCam = vec3(
         texture2D(u_texture, rUV).r,
@@ -31,19 +32,22 @@ void main() {
         texture2D(u_texture, bUV).b
     );
 
-    // ⭐ Eco profundo pero suave (menos contraste)
-    vec4 prev = texture2D(u_prevFrame, uv + vec2(0.0008, -0.0008));
-    vec3 mixFB = mix(rainbowCam, prev.rgb, 0.38);
+    // ⭐ Eco fuerte pero suave en contraste
+    vec4 prev = texture2D(u_prevFrame, uv + vec2(0.001, -0.001));
+    vec3 mixFB = mix(rainbowCam, prev.rgb, 0.48);
 
-    // ⭐ Halo arcoíris suave (sin quemar)
-    float glow = smoothstep(0.35, 1.0, length(cam.rgb));
-    vec3 halo = mixFB + glow * vec3(0.25, 0.15, 0.45);
+    // ⭐ Halo arcoíris suave (menos contraste)
+    float glow = smoothstep(0.40, 1.0, length(cam.rgb));
+    vec3 halo = mixFB + glow * vec3(0.35, 0.20, 0.65);
 
-    // ⭐ Saturación moderada (no quema blancos)
-    vec3 saturated = halo * vec3(1.25, 1.15, 1.35);
+    // ⭐ Saturación alta pero luminancia controlada
+    vec3 saturated = halo * vec3(1.45, 1.35, 1.65);
 
-    // ⭐ Contraste bajo (evita blancos)
-    vec3 soft = mix(saturated, sqrt(saturated), 0.55);
+    // ⭐ Contraste bajo → look digital suave
+    vec3 soft = mix(saturated, sqrt(saturated), 0.70);
 
-    gl_FragColor = vec4(soft, 1.0);
+    // ⭐ Suavizado final para evitar blancos
+    vec3 finalColor = min(soft, vec3(1.0));
+
+    gl_FragColor = vec4(finalColor, 1.0);
 }
