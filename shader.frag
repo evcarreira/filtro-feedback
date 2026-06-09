@@ -16,30 +16,33 @@ void main() {
     // Cámara base
     vec3 cam = texture2D(u_texture, uv).rgb;
 
-    // ⭐ ECO suave tipo agua
+    // ⭐ ECO suave (no duplica, no quema)
     vec3 prev = texture2D(u_prevFrame, uv + vec2(0.0006, -0.0006)).rgb;
-    vec3 echo = mix(cam, prev, 0.30);   // eco suave, no agresivo
+    vec3 echo = mix(cam, prev, 0.25);
 
-    // ⭐ Arcoíris suave tipo refracción en agua
+    // ⭐ THRESHOLD para glitch digital
+    float lum = dot(cam, vec3(0.299, 0.587, 0.114));
+    float t = step(0.45, lum);   // umbral suave
+
+    // ⭐ Glitch basado en threshold
+    float glitch = t * 0.015;    // desplazamiento pequeño
+    vec2 glitchUV = uv + vec2(glitch, -glitch * 0.5);
+
+    // ⭐ Arcoíris suave (RGB split mínimo)
     vec3 rainbow = vec3(
-        texture2D(u_texture, uv + vec2(0.001, -0.0005)).r,
-        texture2D(u_texture, uv).g,
-        texture2D(u_texture, uv + vec2(-0.001, 0.0005)).b
+        texture2D(u_texture, glitchUV + vec2(0.001, 0.0)).r,
+        texture2D(u_texture, glitchUV).g,
+        texture2D(u_texture, glitchUV - vec2(0.001, 0.0)).b
     );
 
     // Mezcla arcoíris + eco
-    vec3 mixColor = mix(echo, rainbow, 0.15);
+    vec3 mixColor = mix(echo, rainbow, 0.35);
 
-    // ⭐ Glitch suave tipo ondulación
-    float wave = sin(uv.y * 40.0) * 0.002;
-    vec3 water = texture2D(u_texture, uv + vec2(wave, 0.0)).rgb;
+    // ⭐ Saturación suave
+    mixColor *= vec3(1.25, 1.15, 1.35);
 
-    // Mezcla final estilo agua
-    vec3 finalColor = mix(mixColor, water, 0.25);
+    // ⭐ Contraste bajo (look suave)
+    mixColor = pow(mixColor, vec3(0.85));
 
-    // ⭐ Saturación baja y contraste bajo
-    finalColor = pow(finalColor, vec3(0.85));  // baja contraste
-    finalColor *= vec3(1.1, 1.05, 1.15);       // saturación suave
-
-    gl_FragColor = vec4(finalColor, 1.0);
+    gl_FragColor = vec4(mixColor, 1.0);
 }
