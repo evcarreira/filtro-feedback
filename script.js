@@ -71,7 +71,7 @@ async function start() {
   navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
     video.srcObject = stream;
 
-    // ⭐ Esperar a que el vídeo tenga imagen REAL
+    // ⭐ Esperar a que el vídeo tenga datos reales
     video.onloadeddata = () => {
       video.play();
       requestAnimationFrame(render);
@@ -94,7 +94,7 @@ async function start() {
 
   function render() {
     // ⭐ Solo dibujar si el vídeo tiene frames válidos
-    if (video.readyState >= 2) {
+    if (video.readyState >= video.HAVE_CURRENT_DATA) {
       gl.bindTexture(gl.TEXTURE_2D, tex);
       gl.texImage2D(
         gl.TEXTURE_2D,
