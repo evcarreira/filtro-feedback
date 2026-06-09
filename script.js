@@ -1,5 +1,5 @@
 const canvas = document.getElementById("canvas");
-const gl = canvas.getContext("webgl");
+const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
 
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -9,6 +9,11 @@ function createShader(type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
+
+  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    console.error("Shader error:", gl.getShaderInfoLog(shader));
+  }
+
   return shader;
 }
 
@@ -32,14 +37,19 @@ async function loadShader() {
   gl.attachShader(program, vs);
   gl.attachShader(program, fs);
   gl.linkProgram(program);
-  gl.useProgram(program);
 
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error("Program error:", gl.getProgramInfoLog(program));
+  }
+
+  gl.useProgram(program);
   return program;
 }
 
 async function start() {
   const program = await loadShader();
 
+  // Cuadrado a pantalla completa
   const position = gl.getAttribLocation(program, "a_position");
   const buffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -51,39 +61,63 @@ async function start() {
   gl.enableVertexAttribArray(position);
   gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
 
+  // Crear video
   const video = document.createElement("video");
   video.autoplay = true;
   video.playsInline = true;
+  video.muted = true;
 
-  // ⭐ CORRECCIÓN IMPORTANTE: esperar a que el vídeo esté listo
+  // ⭐ Pedir cámara
   navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
     video.srcObject = stream;
 
-    video.onloadedmetadata = () => {
+    // ⭐ Esperar a que el vídeo tenga imagen REAL
+    video.onloadeddata = () => {
       video.play();
-      render(); // ahora solo empieza cuando el vídeo está listo
+      requestAnimationFrame(render);
     };
   });
 
+  // ⭐ Crear texturas
   const tex = gl.createTexture();
   const prevTex = gl.createTexture();
 
-  function updateTexture(texture, source) {
+  function setupTexture(texture) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+
+  setupTexture(tex);
+  setupTexture(prevTex);
+
+  function render() {
+    // ⭐ Solo dibujar si el vídeo tiene frames válidos
+    if (video.readyState >= 2) {
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        video
+      );
+    }
+
+    // ⭐ Copiar el frame anterior del canvas
+    gl.bindTexture(gl.TEXTURE_2D, prevTex);
+    gl.copyTexImage2D(
       gl.TEXTURE_2D,
       0,
       gl.RGBA,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      source
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+      0
     );
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  }
-
-  function render() {
-    updateTexture(tex, video);
-    updateTexture(prevTex, canvas);
 
     gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
     gl.uniform1i(gl.getUniformLocation(program, "u_prevFrame"), 1);
