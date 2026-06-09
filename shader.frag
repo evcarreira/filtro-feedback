@@ -8,6 +8,10 @@ uniform float u_time;
 void main() {
     vec2 uv = gl_FragCoord.xy / u_resolution;
 
+    // Correcciones de orientación
+    uv.y = 1.0 - uv.y;   // arregla imagen al revés
+    uv.x = 1.0 - uv.x;   // arregla efecto espejo
+
     // Cámara actual
     vec4 cam = texture2D(u_texture, uv);
 
