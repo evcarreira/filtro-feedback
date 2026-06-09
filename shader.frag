@@ -16,32 +16,32 @@ void main() {
     // Cámara base
     vec3 cam = texture2D(u_texture, uv).rgb;
 
-    // ⭐ ECO suave (no duplica, no quema)
+    // ⭐ ECO suave
     vec3 prev = texture2D(u_prevFrame, uv + vec2(0.0006, -0.0006)).rgb;
     vec3 echo = mix(cam, prev, 0.25);
 
-    // ⭐ THRESHOLD para glitch digital
+    // ⭐ THRESHOLD más agresivo
     float lum = dot(cam, vec3(0.299, 0.587, 0.114));
-    float t = step(0.45, lum);   // umbral suave
+    float t = step(0.35, lum);   // antes 0.45 → ahora más sensible
 
-    // ⭐ Glitch basado en threshold
-    float glitch = t * 0.015;    // desplazamiento pequeño
-    vec2 glitchUV = uv + vec2(glitch, -glitch * 0.5);
+    // ⭐ GLITCH basado en threshold (MUCHO más fuerte)
+    float glitch = t * 0.045;    // antes 0.015 → ahora 3× más
+    vec2 glitchUV = uv + vec2(glitch, -glitch * 0.6);
 
-    // ⭐ Arcoíris suave (RGB split mínimo)
+    // ⭐ ARCOÍRIS más visible (RGB split mayor)
     vec3 rainbow = vec3(
-        texture2D(u_texture, glitchUV + vec2(0.001, 0.0)).r,
+        texture2D(u_texture, glitchUV + vec2(0.002, 0.0)).r,
         texture2D(u_texture, glitchUV).g,
-        texture2D(u_texture, glitchUV - vec2(0.001, 0.0)).b
+        texture2D(u_texture, glitchUV - vec2(0.002, 0.0)).b
     );
 
     // Mezcla arcoíris + eco
-    vec3 mixColor = mix(echo, rainbow, 0.35);
+    vec3 mixColor = mix(echo, rainbow, 0.45);
 
     // ⭐ Saturación suave
     mixColor *= vec3(1.25, 1.15, 1.35);
 
-    // ⭐ Contraste bajo (look suave)
+    // ⭐ Contraste bajo
     mixColor = pow(mixColor, vec3(0.85));
 
     gl_FragColor = vec4(mixColor, 1.0);
