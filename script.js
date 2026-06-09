@@ -67,11 +67,8 @@ async function start() {
   video.playsInline = true;
   video.muted = true;
 
-  // ⭐ Pedir cámara
   navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
     video.srcObject = stream;
-
-    // ⭐ Esperar a que el vídeo tenga datos reales
     video.onloadeddata = () => {
       video.play();
       requestAnimationFrame(render);
@@ -79,23 +76,25 @@ async function start() {
   });
 
   // ⭐ Crear texturas
-  const tex = gl.createTexture();
-  const prevTex = gl.createTexture();
-
-  function setupTexture(texture) {
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+  function createTexture() {
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return tex;
   }
 
-  setupTexture(tex);
-  setupTexture(prevTex);
+  const texCam = createTexture();
+  const texPrev = createTexture();
+
+  // ⭐ Crear framebuffer
+  const fbo = gl.createFramebuffer();
 
   function render() {
-    // ⭐ Solo dibujar si el vídeo tiene frames válidos
+    // ⭐ Actualizar textura de cámara solo si hay datos
     if (video.readyState >= video.HAVE_CURRENT_DATA) {
-      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.bindTexture(gl.TEXTURE_2D, texCam);
       gl.texImage2D(
         gl.TEXTURE_2D,
         0,
@@ -106,27 +105,26 @@ async function start() {
       );
     }
 
-    // ⭐ Copiar el frame anterior del canvas
-    gl.bindTexture(gl.TEXTURE_2D, prevTex);
-    gl.copyTexImage2D(
+    // ⭐ Renderizar al framebuffer para capturar el frame actual
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      0,
-      0,
-      canvas.width,
-      canvas.height,
+      texPrev,
       0
     );
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
 
     gl.uniform1i(gl.getUniformLocation(program, "u_texture"), 0);
     gl.uniform1i(gl.getUniformLocation(program, "u_prevFrame"), 1);
 
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.bindTexture(gl.TEXTURE_2D, texCam);
 
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, prevTex);
+    gl.bindTexture(gl.TEXTURE_2D, texPrev);
 
     gl.uniform2f(
       gl.getUniformLocation(program, "u_resolution"),
@@ -136,8 +134,17 @@ async function start() {
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
+    // ⭐ Renderizar al canvas usando el framebuffer como textura
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, texPrev);
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
     requestAnimationFrame(render);
   }
 }
 
 start();
+
