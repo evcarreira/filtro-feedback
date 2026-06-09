@@ -55,8 +55,14 @@ async function start() {
   video.autoplay = true;
   video.playsInline = true;
 
+  // ⭐ CORRECCIÓN IMPORTANTE: esperar a que el vídeo esté listo
   navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
     video.srcObject = stream;
+
+    video.onloadedmetadata = () => {
+      video.play();
+      render(); // ahora solo empieza cuando el vídeo está listo
+    };
   });
 
   const tex = gl.createTexture();
@@ -98,8 +104,6 @@ async function start() {
 
     requestAnimationFrame(render);
   }
-
-  render();
 }
 
 start();
