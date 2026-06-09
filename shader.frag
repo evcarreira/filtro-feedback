@@ -10,8 +10,8 @@ void main() {
     vec2 uv = v_uv;
 
     // Corrección de orientación
-    uv.y = -1.0 - uv.y;
-    uv.x = -1.0 - uv.x;
+    uv.y = 1.0 - uv.y;
+    uv.x = 1.0 - uv.x;
 
     // Cámara base
     vec3 cam = texture2D(u_texture, uv).rgb;
@@ -28,7 +28,7 @@ void main() {
     );
 
     // Mezcla arcoíris + eco
-    vec3 mixColor = mix(echo, rainbow, 0.55);
+    vec3 mixColor = mix(echo, rainbow, 0.15);
 
     // ⭐ Glitch suave tipo ondulación
     float wave = sin(uv.y * 40.0) * 0.002;
