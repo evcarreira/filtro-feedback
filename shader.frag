@@ -13,25 +13,25 @@ void main() {
     uv.y = 1.0 - uv.y;
     uv.x = 1.0 - uv.x;
 
-    // Cámara
+    // Cámara base
     vec4 cam = texture2D(u_texture, uv);
 
-    // ⭐ ECO MUY FUERTE
-    // Más desplazamiento → más duplicación estética
+    // ⭐ GLITCH: desplazamiento aleatorio por línea
+    float glitch = step(0.97, fract(sin(uv.y * 1200.0) * 99999.0));
+    float glitchShift = glitch * 0.02;
+
+    // ⭐ ARCOÍRIS: separación RGB (chromatic aberration)
+    vec2 rUV = uv + vec2(0.002 + glitchShift, -0.001);
+    vec2 gUV = uv + vec2(0.000, 0.000);
+    vec2 bUV = uv + vec2(-0.002 - glitchShift, 0.001);
+
+    vec3 rainbowCam = vec3(
+        texture2D(u_texture, rUV).r,
+        texture2D(u_texture, gUV).g,
+        texture2D(u_texture, bUV).b
+    );
+
+    // ⭐ ECO profundo (feedback)
     vec4 prev = texture2D(u_prevFrame, uv + vec2(0.0015, -0.0015));
 
-    // ⭐ Mezcla MUY alta → eco profundo
-    vec4 mixFB = mix(cam, prev, 0.45);
-
-    // ⭐ Halo FUERTE y saturado
-    float glow = smoothstep(0.25, 1.0, length(cam.rgb));
-    vec3 halo = mixFB.rgb + glow * vec3(0.25, 0.35, 0.9); // azul intenso
-
-    // ⭐ Saturación extrema
-    vec3 saturated = halo * vec3(1.8, 1.5, 2.2);
-
-    // ⭐ Realce final (sin quemar del todo)
-    vec3 finalColor = mix(saturated, saturated * saturated, 0.35);
-
-    gl_FragColor = vec4(finalColor, 1.0);
-}
+    //
