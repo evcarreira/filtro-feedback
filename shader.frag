@@ -14,40 +14,32 @@ void main() {
     uv.x = 1.0 - uv.x;
 
     // Cámara base
-    vec4 cam = texture2D(u_texture, uv);
+    vec3 cam = texture2D(u_texture, uv).rgb;
 
-    // ⭐ Glitch más fuerte pero no destructivo
-    float glitchH = step(0.985, fract(sin(uv.y * 1200.0) * 99999.0));
-    float glitchV = step(0.985, fract(sin(uv.x * 800.0) * 99999.0));
-    float glitchShift = (glitchH + glitchV) * 0.015;
+    // ⭐ ECO suave tipo agua
+    vec3 prev = texture2D(u_prevFrame, uv + vec2(0.0006, -0.0006)).rgb;
+    vec3 echo = mix(cam, prev, 0.30);   // eco suave, no agresivo
 
-    // ⭐ Arcoíris más marcado (RGB split mayor)
-    vec2 rUV = uv + vec2(0.0025 + glitchShift, -0.0015);
-    vec2 gUV = uv;
-    vec2 bUV = uv + vec2(-0.0025 - glitchShift, 0.0015);
-
-    vec3 rainbowCam = vec3(
-        texture2D(u_texture, rUV).r,
-        texture2D(u_texture, gUV).g,
-        texture2D(u_texture, bUV).b
+    // ⭐ Arcoíris suave tipo refracción en agua
+    vec3 rainbow = vec3(
+        texture2D(u_texture, uv + vec2(0.001, -0.0005)).r,
+        texture2D(u_texture, uv).g,
+        texture2D(u_texture, uv + vec2(-0.001, 0.0005)).b
     );
 
-    // ⭐ Eco fuerte pero suave en contraste
-    vec4 prev = texture2D(u_prevFrame, uv + vec2(0.001, -0.001));
-    vec3 mixFB = mix(rainbowCam, prev.rgb, 0.48);
+    // Mezcla arcoíris + eco
+    vec3 mixColor = mix(echo, rainbow, 0.35);
 
-    // ⭐ Halo arcoíris suave (menos contraste)
-    float glow = smoothstep(0.40, 1.0, length(cam.rgb));
-    vec3 halo = mixFB + glow * vec3(0.35, 0.20, 0.65);
+    // ⭐ Glitch suave tipo ondulación
+    float wave = sin(uv.y * 40.0) * 0.002;
+    vec3 water = texture2D(u_texture, uv + vec2(wave, 0.0)).rgb;
 
-    // ⭐ Saturación alta pero luminancia controlada
-    vec3 saturated = halo * vec3(1.45, 1.35, 1.65);
+    // Mezcla final estilo agua
+    vec3 finalColor = mix(mixColor, water, 0.25);
 
-    // ⭐ Contraste bajo → look digital suave
-    vec3 soft = mix(saturated, sqrt(saturated), 0.70);
-
-    // ⭐ Suavizado final para evitar blancos
-    vec3 finalColor = min(soft, vec3(1.0));
+    // ⭐ Saturación baja y contraste bajo
+    finalColor = pow(finalColor, vec3(0.85));  // baja contraste
+    finalColor *= vec3(1.1, 1.05, 1.15);       // saturación suave
 
     gl_FragColor = vec4(finalColor, 1.0);
 }
