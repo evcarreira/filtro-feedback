@@ -75,7 +75,7 @@ async function start() {
     };
   });
 
-  // ⭐ Crear texturas
+  // Crear texturas
   function createTexture() {
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -88,11 +88,11 @@ async function start() {
   const texCam = createTexture();
   const texPrev = createTexture();
 
-  // ⭐ Crear framebuffer
+  // Framebuffer
   const fbo = gl.createFramebuffer();
 
   function render() {
-    // ⭐ Actualizar textura de cámara solo si hay datos
+    // Actualizar textura de cámara
     if (video.readyState >= video.HAVE_CURRENT_DATA) {
       gl.bindTexture(gl.TEXTURE_2D, texCam);
       gl.texImage2D(
@@ -105,7 +105,7 @@ async function start() {
       );
     }
 
-    // ⭐ Renderizar al framebuffer para capturar el frame actual
+    // Render al framebuffer (feedback)
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
@@ -134,7 +134,7 @@ async function start() {
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    // ⭐ Renderizar al canvas usando el framebuffer como textura
+    // Render al canvas
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     gl.activeTexture(gl.TEXTURE1);
@@ -147,4 +147,3 @@ async function start() {
 }
 
 start();
-
