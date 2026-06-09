@@ -16,18 +16,22 @@ void main() {
     // Cámara
     vec4 cam = texture2D(u_texture, uv);
 
-    // Feedback MUY suave y con desplazamiento mínimo
-    vec4 prev = texture2D(u_prevFrame, uv + vec2(0.0002, -0.0002));
+    // ⭐ ECO MUY FUERTE
+    // Más desplazamiento → más duplicación estética
+    vec4 prev = texture2D(u_prevFrame, uv + vec2(0.0015, -0.0015));
 
-    // Mezcla muy suave (antes 0.12 → aún fuerte)
-    vec4 mixFB = mix(cam, prev, 0.06);
+    // ⭐ Mezcla MUY alta → eco profundo
+    vec4 mixFB = mix(cam, prev, 0.45);
 
-    // Halo extremadamente suave (antes 0.02–0.08)
-    float glow = smoothstep(0.55, 1.0, length(cam.rgb));
-    vec3 halo = mixFB.rgb + glow * vec3(0.01, 0.02, 0.04);
+    // ⭐ Halo FUERTE y saturado
+    float glow = smoothstep(0.25, 1.0, length(cam.rgb));
+    vec3 halo = mixFB.rgb + glow * vec3(0.25, 0.35, 0.9); // azul intenso
 
-    // Suavizado final para evitar saturación
-    vec3 finalColor = mix(halo, cam.rgb, 0.25);
+    // ⭐ Saturación extrema
+    vec3 saturated = halo * vec3(1.8, 1.5, 2.2);
+
+    // ⭐ Realce final (sin quemar del todo)
+    vec3 finalColor = mix(saturated, saturated * saturated, 0.35);
 
     gl_FragColor = vec4(finalColor, 1.0);
 }
